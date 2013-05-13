@@ -1,19 +1,5 @@
 INDEX VERSION 1.126+C:\Users\Nestor\workspace_cbde\CBDE-practica\.metadata\.plugins\org.eclipse.jdt.core
-779461420.index
-27911977.index
-3178649601.index
-3784777950.index
-1123159574.index
-3211477277.index
-1513478551.index
-2793893092.index
 3083014742.index
-808612962.index
-3237991479.index
-202852631.index
 1953149152.index
 12451681.index
 966656968.index
-2082590155.index
-3554754414.index
-2129137805.index
