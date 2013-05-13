@@ -13,6 +13,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.MongoClient;
 
 //http://www.mkyong.com/mongodb/java-mongodb-hello-world-example/
+
 public class Main {
 
 	private String qu1_data = "19/03/30";
