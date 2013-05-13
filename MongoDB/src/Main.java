@@ -1,22 +1,26 @@
 import java.net.UnknownHostException;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.MongoClient;
 
 //http://www.mkyong.com/mongodb/java-mongodb-hello-world-example/
 
 public class Main {
 
-	private String qu1_data = "19/03/30";
+	private Date qu1_data;
 		
 	private String qu2_size;
 	private String qu2_type;
@@ -37,11 +41,6 @@ public class Main {
 	private List<Integer> cacheClausPartkey = new ArrayList<Integer>();
 	private List<Integer> cacheClausSuppkey = new ArrayList<Integer>();
 	
-	private String QUERY1;
-	private String QUERY2;
-	private String QUERY3;
-	private String QUERY4;
-	
 	private List<String> taules;
 	
 
@@ -55,6 +54,12 @@ public class Main {
 		taules.add("partsupp");
 		taules.add("region");
 		taules.add("supplier");
+		
+		try {
+			qu1_data = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("19/03/2020");
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
 		
 	}
 
@@ -72,17 +77,18 @@ public class Main {
 		}
  
 		try{
+
 			deleteCollections();
 			
 			insertBatchData(1000);
 			
-			updateValues();
+			//updateValues();
 			
-			//runQueries();
+			runQueries();
 			
 			insertBatchData(6000);
 			
-			//runQueries();
+			runQueries();
 			
 		}
 		catch (Exception e) {
@@ -98,18 +104,18 @@ public class Main {
 	private void runQueries(){
 		System.out.println("------------- QUERIES ---------------");
 		long temps = 0;
-		temps += exeQuery(1,QUERY1);
-		temps += exeQuery(2,QUERY2);
-		temps += exeQuery(3,QUERY3);
-		temps += exeQuery(4,QUERY4);
+		temps += exeQuery(1);
+		temps += exeQuery(2);
+		temps += exeQuery(3);
+		temps += exeQuery(4);
 		System.out.println("Avg de temps amb tots els inserts " + String.format("%s",(float)temps/(float)4) + " mili ");
 
 	}
 	
-	private long exeQuery(int num, String sql){
+	private long exeQuery(int num){
 		long temps = 9999999;
 		for(int i = 0; i < 5; i++){
-			long t = executeQuery(num, sql);
+			long t = runQuery(num);
 			if(t < temps && t != 0){
 				temps = t;
 			}
@@ -118,30 +124,50 @@ public class Main {
 		return temps;
 	}
 	
+	private long runQuery(int num){
+		switch(num){
+			case 1:	return query1();
+			case 2:	return query2();
+			case 3:	return query3();
+			case 4:	return query4();
+		}
+		return -1;
+	}
 	
-	private long executeQuery(int num, String sql){
-/*		long temps_ini = 0, temps_fin = 0; 
-		boolean teResultat = false;
+	private long query1(){
+		long temps_ini = 0, temps_fin = 0; 
+		temps_ini = System.currentTimeMillis();
 		
-		int intents = 20;
+
 		
-		while(!teResultat && intents > 0){
-			temps_ini = System.currentTimeMillis();
-			ResultSet resultSet = statement.executeQuery(sql);
-			temps_fin = System.currentTimeMillis();
-			if (resultSet.next()){
-				teResultat = true;
-			}
-			intents--;
-		}
-		if(intents == 0){
-			System.out.println("Me pasaaoooo!! No trobo cap resultat :(  (query "+num+")");
-		}
-		return temps_fin-temps_ini;*/
+		DBCollection collection = db.getCollection("lineitem");
+		
+		BasicDBObject query = new BasicDBObject();
+		query.put("l_shipdate", new BasicDBObject("$lte", qu1_data));
+		collection.find(query)
+			.sort(new BasicDBObject("l_returnflag", -1))
+			.sort(new BasicDBObject("l_linestatus", -1));
+		DBCursor cursor = collection.find();
+	//	while(cursor.hasNext()) {
+	//	    System.out.println(cursor.next());
+	//	}
+		
+		temps_fin = System.currentTimeMillis();
+		return temps_fin-temps_ini;
+	}
+	
+	private long query2(){
+		return 1;
+	}	
+	
+	private long query3(){
+		return 1;
+	}	
+	
+	private long query4(){
 		return 1;
 	}
-
-
+	
 	
 	/*  ---------------------- Inserts ------------------------------  */
 	
@@ -155,9 +181,9 @@ public class Main {
 		llista.put("part",insertsPart(start));
 		llista.put("supplier",insertsSupplier(start));
 		llista.put("customer",insertsCustomer(start));
-		llista.put("partSupp",insertsPartSupp(start));
+		llista.put("partsupp",insertsPartSupp(start));
 		llista.put("orders",insertsOrders(start));
-		llista.put("lineItem",insertsLineItem(start));
+		llista.put("lineitem",insertsLineItem(start));
 		System.out.println("Valors preparats, ara anem a fer insert");
 
 		long temps_ini, temps_fin; 
@@ -179,7 +205,7 @@ public class Main {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
 		for(int i = start; i < 5+start; i++){
 			BasicDBObject document = new BasicDBObject();
-			document.append("R_RegionKey", i);
+			document.append("_id", i);
 			document.append("R_Name", rStr(64/2));
 			document.append("R_Comment", rStr(160/2));
 			document.append("skip", rStr(64/2));
@@ -192,7 +218,7 @@ public class Main {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
 		for(int i = start; i < 25+start; i++){
 			BasicDBObject document = new BasicDBObject();
-			document.append("N_NationKey", i);
+			document.append("_id", i);
 			document.append("N_Name", rStr(64/2));
 			document.append("N_RegionKey", rBetween(start,start+5));
 			document.append("N_Comment", rStr(160/2));
@@ -204,10 +230,10 @@ public class Main {
 	
 	private List<BasicDBObject> insertsPart(int start){
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
-		for(int i = start; i < 5+start; i++){
+		for(int i = start; i < 666+start; i++){
 			cacheClausPartkey.add(i);
 			BasicDBObject document = new BasicDBObject();
-			document.append("P_PartKey", i);
+			document.append("_id", i);
 			document.append("P_Name", rStr(64/2));
 			document.append("P_Mfgr", rStr(64/2));
 			document.append("P_Brand", rStr(64/2));
@@ -224,10 +250,10 @@ public class Main {
 	
 	private List<BasicDBObject> insertsSupplier(int start){
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
-		for(int i = start; i < 5+start; i++){
+		for(int i = start; i < 33+start; i++){
 			cacheClausSuppkey.add(i);
 			BasicDBObject document = new BasicDBObject();
-			document.append("S_SuppKey", i);
+			document.append("_id", i);
 			document.append("S_Name", rStr(64/2));
 			document.append("S_Address", rStr(64/2));
 			document.append("S_NationKey", rBetween(start,start+25));
@@ -242,9 +268,9 @@ public class Main {
 	
 	private List<BasicDBObject> insertsCustomer(int start){
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
-		for(int i = start; i < 5+start; i++){
+		for(int i = start; i < 499+start; i++){
 			BasicDBObject document = new BasicDBObject();
-			document.append("C_CustKey", i);
+			document.append("_id", i);
 			document.append("C_Name", rStr(64/2));
 			document.append("C_Address", rStr(64/2));
 			document.append("C_NationKey", rBetween(start,start+25));
@@ -260,7 +286,7 @@ public class Main {
 	
 	private List<BasicDBObject> insertsPartSupp(int start) {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
-		for(int i = start; i < 5+start; i++){
+		for(int i = start; i < 2666+start; i++){
 			int partkey = cacheClausPartkey.get(rBetween(0, cacheClausPartkey.size()));
 			int suppkey = cacheClausSuppkey.get(rBetween(0, cacheClausSuppkey.size()));
 			Tuple t = new Tuple(partkey, suppkey);
@@ -280,9 +306,9 @@ public class Main {
 		
 	private List<BasicDBObject> insertsOrders(int start){
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
-		for(int i = start; i < 5+start; i++){			
+		for(int i = start; i < 4999+start; i++){			
 			BasicDBObject document = new BasicDBObject();
-			document.append("O_OrderKey", i);
+			document.append("_id", i);
 			document.append("O_CustKey", rBetween(start,start+499));
 			document.append("O_OrderStatus", rStr(64/2));
 			document.append("O_TotalPrice", rInt(13/2));
@@ -300,9 +326,8 @@ public class Main {
 	
 	private List<BasicDBObject> insertsLineItem(int start) {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
-		for(int i = start; i < 5+start; i++){
+		for(int i = start; i < 19999+start; i++){
 			Tuple t = cacheClausPartSup.get(rBetween(0, cacheClausPartSup.size()));
-			
 			BasicDBObject document = new BasicDBObject();
 			document.append("L_OrderKey", rBetween(start,start+4999));
 			document.append("L_PartKey", t.a);
@@ -389,14 +414,7 @@ public class Main {
 		setQueries();
 */	}
 	
-	private void setQueries(){
-		QUERY1 = "SELECT l_returnflag, l_linestatus, sum(l_quantity) as sum_qty, sum(l_extendedprice) as sum_base_price, sum(l_extendedprice*(1-l_discount)) as sum_disc_price, sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge, avg(l_quantity) as avg_qty, avg(l_extendedprice) as avg_price, avg(l_discount) as avg_disc, count(*) as count_order FROM lineitem WHERE l_shipdate <= '"+qu1_data+"' GROUP BY l_returnflag, l_linestatus ORDER BY l_returnflag, l_linestatus";
-		QUERY2 = "SELECT s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment FROM part, supplier, partsupp, nation, region WHERE p_partkey = ps_partkey AND s_suppkey = ps_suppkey AND p_size = '"+qu2_size+"' AND p_type like '%"+qu2_type+"' AND s_nationkey = n_nationkey AND n_regionkey = r_regionkey AND r_name = '"+qu2_region+"' AND ps_supplycost = (SELECT min(ps_supplycost) FROM partsupp, supplier, nation, region WHERE p_partkey = ps_partkey AND s_suppkey = ps_suppkey AND s_nationkey = n_nationkey AND n_regionkey = r_regionkey AND r_name = '"+qu2_region+"') ORDER BY s_acctbal desc, n_name, s_name, p_partkey";
-		QUERY3 = "SELECT l_orderkey, sum(l_extendedprice*(1-l_discount)) as revenue, o_orderdate, o_shippriority FROM customer, orders, lineitem WHERE c_mktsegment = '"+qu3_segment+"' AND c_custkey = o_custkey AND l_orderkey = o_orderkey AND o_orderdate < '"+qu3_data1+"' AND l_shipdate > '"+qu3_data2+"' GROUP BY l_orderkey, o_orderdate, o_shippriority ORDER BY revenue desc, o_orderdate";
-		QUERY4 = "SELECT n_name, sum(l_extendedprice * (1 - l_discount)) as revenue FROM customer, orders, lineitem, supplier, nation, region WHERE c_custkey = o_custkey AND l_orderkey = o_orderkey AND l_suppkey = s_suppkey AND c_nationkey = s_nationkey AND s_nationkey = n_nationkey AND n_regionkey = r_regionkey AND r_name = '"+qu4_region+"' AND o_orderdate >= '"+qu4_data1+"' AND o_orderdate < '"+qu4_data2+"' GROUP BY n_name ORDER BY revenue desc";
-	
-	}
-	
+
 
 	/*  ---------------------- Randoms ------------------------------  */
 
@@ -423,7 +441,7 @@ public class Main {
 	}
 	
 	public Date rDate(){
-		long unixtime=(long) (946706400+rnd.nextDouble()*60*60*24*365*100);
+		long unixtime=(long) (946706400+rnd.nextDouble()*60*60*24*365*100000);
 		return new Date(unixtime);
 	}
 
