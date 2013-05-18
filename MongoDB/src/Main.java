@@ -14,6 +14,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 
 //http://www.mkyong.com/mongodb/java-mongodb-hello-world-example/
@@ -138,20 +139,72 @@ public class Main {
 		long temps_ini = 0, temps_fin = 0; 
 		temps_ini = System.currentTimeMillis();
 		
-
+		List<HashMap<String, String>> resultat = new ArrayList<HashMap<String, String>>();
 		
 		DBCollection collection = db.getCollection("lineitem");
 		
 		BasicDBObject query = new BasicDBObject();
 		query.put("l_shipdate", new BasicDBObject("$lte", qu1_data));
-		collection.find(query)
-			.sort(new BasicDBObject("l_returnflag", -1))
-			.sort(new BasicDBObject("l_linestatus", -1));
-		DBCursor cursor = collection.find();
-	//	while(cursor.hasNext()) {
-	//	    System.out.println(cursor.next());
-	//	}
-		
+		collection.find(query);
+		DBCursor cursor = collection.find()
+			.sort(new BasicDBObject("l_linestatus", -1))
+			.sort(new BasicDBObject("l_returnflag", -1));
+	
+		String last_l_returnflag = null;
+		String last_l_linestatus = null;
+		int i = 0, sum_qty = 0, sum_base_price = 0, sum_disc_price = 0, sum_charge = 0, sum_discount = 0;
+
+		while(cursor.hasNext()) {
+			DBObject ob = cursor.next();
+			String l_returnflag = (String) ob.get("l_returnflag");
+			String l_linestatus = (String) ob.get("l_linestatus");
+			
+
+			int l_discount = (Integer)ob.get("l_discount");
+			int l_extendedprice = (Integer)ob.get("l_extendedprice");
+			sum_qty += (Integer)ob.get("l_quantity");
+			sum_base_price += l_extendedprice;
+			sum_disc_price += l_extendedprice*(1-l_discount);
+			sum_charge += l_extendedprice*(1-l_discount)*(1+(Integer)ob.get("l_tax"));
+			sum_discount += l_discount;
+			i++;
+			
+			// Mirem si pertany al groupby anterior
+			boolean next_group = true;
+			if(l_returnflag.equals(last_l_returnflag)){
+				if(l_linestatus.equals(last_l_linestatus)){
+					next_group = false;
+				}
+			}
+			
+			if(next_group){
+				// Calculem la tupla
+				HashMap<String, String> t = new HashMap<String, String>();
+				t.put("l_returnflag", l_returnflag);
+				t.put("l_linestatus", l_linestatus);
+				t.put("sum_qty", ""+sum_qty);
+				t.put("sum_base_price", ""+sum_base_price);
+				t.put("sum_disc_price", ""+sum_disc_price);
+				t.put("sum_charge", ""+sum_charge);
+				t.put("avg_qty", ""+(sum_qty/i));
+				t.put("avg_price", ""+(sum_base_price/i));
+				t.put("avg_disc", ""+(sum_discount/i));
+				t.put("count_order", ""+i);
+				 
+				resultat.add(t);
+
+				// Ho deixem bé per la següent iteració
+				last_l_returnflag = l_returnflag;
+				last_l_linestatus = l_linestatus;
+				sum_qty = 0; 
+				sum_base_price = 0;
+				sum_disc_price = 0;
+				sum_charge = 0;
+				sum_discount = 0;
+				i = 0;
+			}
+		}
+
 		temps_fin = System.currentTimeMillis();
 		return temps_fin-temps_ini;
 	}
@@ -206,8 +259,8 @@ public class Main {
 		for(int i = start; i < 5+start; i++){
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
-			document.append("R_Name", rStr(64/2));
-			document.append("R_Comment", rStr(160/2));
+			document.append("r_name", rStr(64/2));
+			document.append("r_comment", rStr(160/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -219,9 +272,9 @@ public class Main {
 		for(int i = start; i < 25+start; i++){
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
-			document.append("N_Name", rStr(64/2));
-			document.append("N_RegionKey", rBetween(start,start+5));
-			document.append("N_Comment", rStr(160/2));
+			document.append("n_name", rStr(64/2));
+			document.append("n_regionkey", rBetween(start,start+5));
+			document.append("n_comment", rStr(160/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -234,14 +287,14 @@ public class Main {
 			cacheClausPartkey.add(i);
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
-			document.append("P_Name", rStr(64/2));
-			document.append("P_Mfgr", rStr(64/2));
-			document.append("P_Brand", rStr(64/2));
-			document.append("P_Type", rStr(64/2));
-			document.append("P_Size", rInt(4));
-			document.append("P_Container", rStr(64/2));
-			document.append("P_RetailPrice", rInt(4));
-			document.append("P_Comment", rStr(64/2));
+			document.append("p_name", rStr(64/2));
+			document.append("p_mfgr", rStr(64/2));
+			document.append("p_brand", rStr(64/2));
+			document.append("p_type", rStr(64/2));
+			document.append("p_size", rInt(4));
+			document.append("p_container", rStr(64/2));
+			document.append("p_retailprice", rInt(4));
+			document.append("p_comment", rStr(64/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -254,12 +307,12 @@ public class Main {
 			cacheClausSuppkey.add(i);
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
-			document.append("S_Name", rStr(64/2));
-			document.append("S_Address", rStr(64/2));
-			document.append("S_NationKey", rBetween(start,start+25));
-			document.append("S_Phone", rStr(18/2));
-			document.append("S_AcctBal", rInt(13/2));
-			document.append("S_Comment", rStr(105/2));
+			document.append("s_name", rStr(64/2));
+			document.append("s_address", rStr(64/2));
+			document.append("s_nationkey", rBetween(start,start+25));
+			document.append("s_phone", rStr(18/2));
+			document.append("s_acctbal", rInt(13/2));
+			document.append("s_comment", rStr(105/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -271,13 +324,13 @@ public class Main {
 		for(int i = start; i < 499+start; i++){
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
-			document.append("C_Name", rStr(64/2));
-			document.append("C_Address", rStr(64/2));
-			document.append("C_NationKey", rBetween(start,start+25));
-			document.append("C_Phone", rStr(18/2));
-			document.append("C_AcctBal", rInt(13/2));
-			document.append("C_MktSegment", rStr(64/2));
-			document.append("C_Comment", rStr(102/2));
+			document.append("c_name", rStr(64/2));
+			document.append("c_address", rStr(64/2));
+			document.append("c_nationkey", rBetween(start,start+25));
+			document.append("c_phone", rStr(18/2));
+			document.append("c_acctbal", rInt(13/2));
+			document.append("c_mktsegment", rStr(64/2));
+			document.append("c_comment", rStr(102/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -293,11 +346,11 @@ public class Main {
 			cacheClausPartSup.add(t);
 			
 			BasicDBObject document = new BasicDBObject();
-			document.append("PS_PartKey", partkey);
-			document.append("PS_SuppKey", suppkey);
-			document.append("PS_AvailQty", rInt(4));
-			document.append("PS_SupplyCost", rInt(13/2));
-			document.append("PS_Comment", rStr(200/2));
+			document.append("ps_partkey", partkey);
+			document.append("ps_suppkey", suppkey);
+			document.append("ps_availqty", rInt(4));
+			document.append("ps_supplycost", rInt(13/2));
+			document.append("ps_comment", rStr(200/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -309,14 +362,14 @@ public class Main {
 		for(int i = start; i < 4999+start; i++){			
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
-			document.append("O_CustKey", rBetween(start,start+499));
-			document.append("O_OrderStatus", rStr(64/2));
-			document.append("O_TotalPrice", rInt(13/2));
-			document.append("O_OrderDate", rDate());
-			document.append("O_OrderPriority", rStr(15/2));
-			document.append("O_Clerk", rStr(64/2));
-			document.append("O_ShipPriority", rInt(4));
-			document.append("O_Comment", rStr(80/2));
+			document.append("o_custkey", rBetween(start,start+499));
+			document.append("o_orderstatus", rStr(64/2));
+			document.append("o_totalprice", rInt(13/2));
+			document.append("o_orderdate", rDate());
+			document.append("o_orderpriority", rStr(15/2));
+			document.append("o_clerk", rStr(64/2));
+			document.append("o_shippriority", rInt(4));
+			document.append("o_comment", rStr(80/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
@@ -329,22 +382,22 @@ public class Main {
 		for(int i = start; i < 19999+start; i++){
 			Tuple t = cacheClausPartSup.get(rBetween(0, cacheClausPartSup.size()));
 			BasicDBObject document = new BasicDBObject();
-			document.append("L_OrderKey", rBetween(start,start+4999));
-			document.append("L_PartKey", t.a);
-			document.append("L_SuppKey", t.b);
-			document.append("L_LineNumber", rInt(4));
-			document.append("L_Quantity", rInt(4));
-			document.append("L_ExtendedPrice", rInt(13/2));
-			document.append("L_Discount", rInt(13/2));
-			document.append("L_Tax", rInt(13/2));
-			document.append("L_ReturnFlag", rStr(64/2));
-			document.append("L_LineStatus", rStr(64/2));
-			document.append("L_ShipDate", rDate());
-			document.append("L_CommitDate", rDate());
-			document.append("L_ReceiptDate", rDate());
-			document.append("L_ShipInstruct", rStr(64/2));
-			document.append("L_ShipMode", rStr(64/2));
-			document.append("L_Comment", rStr(64/2));
+			document.append("l_orderkey", rBetween(start,start+4999));
+			document.append("l_partkey", t.a);
+			document.append("l_suppkey", t.b);
+			document.append("l_linenumber", rInt(4));
+			document.append("l_quantity", rInt(4));
+			document.append("l_extendedprice", rInt(13/2));
+			document.append("l_discount", rInt(13/2));
+			document.append("l_tax", rInt(13/2));
+			document.append("l_returnflag", rStr(64/2));
+			document.append("l_linestatus", rStr(64/2));
+			document.append("l_shipdate", rDate());
+			document.append("l_commitdate", rDate());
+			document.append("l_receiptdate", rDate());
+			document.append("l_shipinstruct", rStr(64/2));
+			document.append("l_shipmode", rStr(64/2));
+			document.append("l_comment", rStr(64/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
 		}
