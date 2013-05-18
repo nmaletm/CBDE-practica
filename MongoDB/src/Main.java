@@ -23,17 +23,17 @@ public class Main {
 
 	private Date qu1_data;
 		
-	private String qu2_size;
+	private int qu2_size;
 	private String qu2_type;
 	private String qu2_region;
 	
 	private String qu3_segment;
-	private String qu3_data1;
-	private String qu3_data2;
+	private Date qu3_data1;
+	private Date qu3_data2;
 
 	private String qu4_region;
-	private String qu4_data1;
-	private String qu4_data2;
+	private Date qu4_data1;
+	private Date qu4_data2;
 	
 	private DB db;
 	private Random rnd = new Random();
@@ -58,6 +58,18 @@ public class Main {
 		
 		try {
 			qu1_data = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("19/03/2020");
+
+			qu2_size = 5212;
+			qu2_type = "RDEWNKUCPWVEJQTNFMCJVFEARHEFITHH";
+			qu2_region = "JQNWOMRCBAGNMFKDMVYQSXIFPFHBRCCV";
+			
+			qu3_segment = "SLVWXUKNFHLYWLKGLHZFOAPTLUAUNTWS";
+			qu3_data1 = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("01/09/2030");
+			qu3_data2 = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("28/08/1992");
+			
+			qu4_region = qu2_region;
+			qu4_data1 = qu3_data1;
+			qu4_data2 = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("01/09/2031");
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}
@@ -82,9 +94,7 @@ public class Main {
 			deleteCollections();
 			
 			insertBatchData(1000);
-			
-			//updateValues();
-			
+						
 			runQueries();
 			
 			insertBatchData(6000);
@@ -94,8 +104,6 @@ public class Main {
 		}
 		catch (Exception e) {
 			e.printStackTrace();
-		} finally {
-
 		}
 		
 	}
@@ -204,7 +212,7 @@ public class Main {
 				i = 0;
 			}
 		}
-
+		
 		temps_fin = System.currentTimeMillis();
 		return temps_fin-temps_ini;
 	}
@@ -258,8 +266,15 @@ public class Main {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
 		for(int i = start; i < 5+start; i++){
 			BasicDBObject document = new BasicDBObject();
+			
+			String r_name = rStr(64/2);
+			// Falsejem un 10% dels inserts per assegurar les queries
+			if (i%10 == 0) {
+				r_name = qu2_region;
+			}
+	
 			document.append("_id", i);
-			document.append("r_name", rStr(64/2));
+			document.append("r_name", r_name);
 			document.append("r_comment", rStr(160/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
@@ -285,13 +300,21 @@ public class Main {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
 		for(int i = start; i < 666+start; i++){
 			cacheClausPartkey.add(i);
+			
+			int p_size = rInt(4);
+			String p_type = rStr(64/2);
+			// Falsejem un 10% dels inserts per assegurar les queries
+			if (i%10 == 0) {
+				p_size = qu2_size;
+				p_type = qu2_type;
+			}
 			BasicDBObject document = new BasicDBObject();
 			document.append("_id", i);
 			document.append("p_name", rStr(64/2));
 			document.append("p_mfgr", rStr(64/2));
 			document.append("p_brand", rStr(64/2));
-			document.append("p_type", rStr(64/2));
-			document.append("p_size", rInt(4));
+			document.append("p_type", p_type);
+			document.append("p_size", p_size);
 			document.append("p_container", rStr(64/2));
 			document.append("p_retailprice", rInt(4));
 			document.append("p_comment", rStr(64/2));
@@ -323,13 +346,20 @@ public class Main {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
 		for(int i = start; i < 499+start; i++){
 			BasicDBObject document = new BasicDBObject();
+			
+			String c_mktsegment = rStr(64/2);
+			// Falsejem un 10% dels inserts per assegurar les queries
+			if (i%10 == 0) {
+				c_mktsegment = qu3_segment;
+			}
+			
 			document.append("_id", i);
 			document.append("c_name", rStr(64/2));
 			document.append("c_address", rStr(64/2));
 			document.append("c_nationkey", rBetween(start,start+25));
 			document.append("c_phone", rStr(18/2));
 			document.append("c_acctbal", rInt(13/2));
-			document.append("c_mktsegment", rStr(64/2));
+			document.append("c_mktsegment", c_mktsegment);
 			document.append("c_comment", rStr(102/2));
 			document.append("skip", rStr(64/2));
 			res.add(document);
@@ -361,11 +391,18 @@ public class Main {
 		List<BasicDBObject> res = new ArrayList<BasicDBObject>();
 		for(int i = start; i < 4999+start; i++){			
 			BasicDBObject document = new BasicDBObject();
+			
+			Date o_orderdate = rDate();
+			// Falsejem un 10% dels inserts per assegurar les queries
+			if (i%10 == 0) {
+				o_orderdate = qu3_data1;
+			}
+			
 			document.append("_id", i);
 			document.append("o_custkey", rBetween(start,start+499));
 			document.append("o_orderstatus", rStr(64/2));
 			document.append("o_totalprice", rInt(13/2));
-			document.append("o_orderdate", rDate());
+			document.append("o_orderdate", o_orderdate);
 			document.append("o_orderpriority", rStr(15/2));
 			document.append("o_clerk", rStr(64/2));
 			document.append("o_shippriority", rInt(4));
@@ -382,6 +419,13 @@ public class Main {
 		for(int i = start; i < 19999+start; i++){
 			Tuple t = cacheClausPartSup.get(rBetween(0, cacheClausPartSup.size()));
 			BasicDBObject document = new BasicDBObject();
+			
+			Date l_shipdate = rDate();
+			// Falsejem un 10% dels inserts per assegurar les queries
+			if (i%10 == 0) {
+				l_shipdate = qu3_data2;
+			}
+			
 			document.append("l_orderkey", rBetween(start,start+4999));
 			document.append("l_partkey", t.a);
 			document.append("l_suppkey", t.b);
@@ -392,7 +436,7 @@ public class Main {
 			document.append("l_tax", rInt(13/2));
 			document.append("l_returnflag", rStr(64/2));
 			document.append("l_linestatus", rStr(64/2));
-			document.append("l_shipdate", rDate());
+			document.append("l_shipdate", l_shipdate);
 			document.append("l_commitdate", rDate());
 			document.append("l_receiptdate", rDate());
 			document.append("l_shipinstruct", rStr(64/2));
@@ -413,61 +457,7 @@ public class Main {
 	}
 	
 	
-	/*  ---------------------- Calcular dades -----------------------  */
-	private void updateValues(){
-/*		System.out.println("---------- UPDATE VALUES ------------");
-		try{
-			Statement statement = connection.createStatement();
-			String sql = "SELECT p_size, p_type, r_name FROM part, supplier, partsupp, nation, region WHERE "+
-	"  rownum = 1 AND"+
-	"  p_partkey = ps_partkey AND "+
-	"  s_suppkey = ps_suppkey AND "+
-	"  s_nationkey = n_nationkey AND "+
-	"  n_regionkey = r_regionkey AND "+
-	"  ps_supplycost = (SELECT min(ps_supplycost) FROM partsupp, supplier, nation, region WHERE "+
-	"                    p_partkey = ps_partkey AND "+
-	"                    s_suppkey = ps_suppkey AND "+
-	"                    s_nationkey = n_nationkey AND "+
-	"                    n_regionkey = r_regionkey  "+
-	 "                   ) ORDER BY s_acctbal desc, n_name, s_name, p_partkey";
-			ResultSet resultSet = statement.executeQuery(sql);
-			if (resultSet.next()){
-				qu2_size = resultSet.getString(1);
-				qu2_type = resultSet.getString(2);
-				qu2_region = resultSet.getString(3);		
-			}
-			sql = "SELECT c_mktsegment, to_char(o_orderdate+1, 'DD/MM/YYYY') , to_char(l_shipdate-1, 'DD/MM/YYYY')  "+
-	" FROM customer, orders, lineitem WHERE "+
-	"  rownum = 1 and "+
-	"  c_custkey = o_custkey AND "+
-	"  l_orderkey = o_orderkey ";
-			resultSet = statement.executeQuery(sql);
-			if (resultSet.next()){
-				qu3_segment = resultSet.getString(1);
-				qu3_data1 = resultSet.getString(2);
-				qu3_data2 = resultSet.getString(3);
-			}
-			
-			sql = "SELECT r_name, to_char(o_orderdate, 'DD/MM/YYYY'), to_char(o_orderdate+365, 'DD/MM/YYYY') "+
-	"	FROM customer, orders, lineitem, supplier, nation, region WHERE c_custkey = o_custkey "+
-	"  and rownum = 1 "+
-	"	AND l_orderkey = o_orderkey AND l_suppkey = s_suppkey AND c_nationkey = s_nationkey "+
-	"	AND s_nationkey = n_nationkey AND n_regionkey = r_regionkey ";
-
-			resultSet = statement.executeQuery(sql);
-			if (resultSet.next()){
-				qu4_region = resultSet.getString(1);
-				qu4_data1 = resultSet.getString(2);
-				qu4_data2 = resultSet.getString(3);
-			}
-		}
-		catch(Exception e){
-			System.out.println("No s'han pogut posar els valors per les queries");
-		}
-		setQueries();
-*/	}
 	
-
 
 	/*  ---------------------- Randoms ------------------------------  */
 
