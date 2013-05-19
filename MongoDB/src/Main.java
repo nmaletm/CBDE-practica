@@ -67,7 +67,7 @@ public class Main {
 			qu2_region = "JQNWOMRCBAGNMFKDMVYQSXIFPFHBRCCV";
 			
 			qu3_segment = "SLVWXUKNFHLYWLKGLHZFOAPTLUAUNTWS";
-			qu3_data1 = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("01/09/2030");
+			qu3_data1 = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("01/09/2040");
 			qu3_data2 = new SimpleDateFormat("d/M/y", Locale.ENGLISH).parse("28/08/1992");
 			
 			qu4_region = qu2_region;
@@ -216,6 +216,9 @@ public class Main {
 				i = 0;
 			}
 		}
+		if(resultat.size() == 0){
+			System.out.println("ALERTA: El resultat de la query 1 no retorna cap resultat!!!");
+		}
 	}
 
 	private void query2(){
@@ -265,7 +268,7 @@ public class Main {
 							t.put("s_acctbal", ob_s.get("s_acctbal"));
 							t.put("s_name", ob_s.get("s_name"));
 							t.put("n_name", ob_n.get("n_name"));
-							t.put("p_partkey", ob_p.get("p_partkey"));
+							t.put("p_partkey", ob_p.get("_id"));
 							t.put("p_mfgr", ob_p.get("p_mfgr"));
 							t.put("s_address", ob_s.get("s_address"));
 							t.put("s_phone", ob_s.get("s_phone"));
@@ -277,10 +280,11 @@ public class Main {
 				}
 			}
 		}
+
 		Collections.sort(resultat, new ComparatorQuery2());
 		
 		if(resultat.size() == 0){
-			System.out.println("ALERTA: El resultat de la query no retorna cap resultat!!!");
+			System.out.println("ALERTA: El resultat de la query 2 no retorna cap resultat!!!");
 		}
 	}
 
@@ -328,11 +332,81 @@ public class Main {
 	}
 	
 	private void query3(){
+		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
+		
+		BasicDBObject query_l = new BasicDBObject();
+		query_l.put("l_shipdate", new BasicDBObject("$gt", qu3_data2));
+		DBCursor cursor_l = db.getCollection("lineitem").find(query_l);
+	
+		Integer last_l_orderkey = null;
+		Date last_o_orderdate = null;
+		Integer last_o_shippriority = null;
+		Integer revenue = 0;
 
+		while(cursor_l.hasNext()) {
+			DBObject ob_l = cursor_l.next();
+			Integer l_orderkey = (Integer) ob_l.get("l_orderkey");
+			Integer l_extendedprice = (Integer) ob_l.get("l_extendedprice");
+			Integer l_discount = (Integer) ob_l.get("l_discount");
+			
+			BasicDBObject query_o = new BasicDBObject();
+			query_o.put("_id", l_orderkey);
+			query_o.put("o_orderdate", new BasicDBObject("$lte", qu3_data1));
+			DBCursor cursor_o = db.getCollection("orders").find(query_o);
+			while(cursor_o.hasNext()) {
+				DBObject ob_o = cursor_o.next();
+				Integer o_orderkey = (Integer) ob_o.get("_id");
+				Date o_orderdate = (Date) ob_o.get("o_orderdate");
+				Integer o_shippriority = (Integer) ob_o.get("o_shippriority");
+				
+				BasicDBObject query_c = new BasicDBObject();
+				query_c.put("_id", o_orderkey);
+				query_c.put("c_mktsegment", qu3_segment);
+				DBCursor cursor_c = db.getCollection("customer").find(query_c);
+				while(cursor_c.hasNext()) {
+					cursor_c.next();
+					
+					revenue += l_extendedprice*(1-l_discount);
+					
+					// Mirem si pertany al groupby anterior
+					boolean next_group = true;
+					if(l_orderkey.equals(last_l_orderkey)){
+						if(o_orderdate.equals(last_o_orderdate)){
+							if(o_shippriority.equals(last_o_shippriority)){
+								next_group = false;
+							}
+						}
+					}
+					if(next_group){
+						// Calculem la tupla
+						Map<String, Object> t = new HashMap<String, Object>();
+						t.put("l_orderkey", l_orderkey);
+						t.put("revenue", revenue);
+						t.put("o_orderdate", o_orderdate);
+						t.put("o_shippriority", o_shippriority);
+						resultat.add(t);
+
+						// Ho deixem bé per la següent iteració
+						last_l_orderkey = l_orderkey;
+						last_o_orderdate = o_orderdate;
+						last_o_shippriority = o_shippriority;
+						revenue = 0;
+					}
+				}
+			}
+		}
+
+		Collections.sort(resultat, new ComparatorQuery3());
+
+		if(resultat.size() == 0){
+			System.out.println("ALERTA: El resultat de la query 3 no retorna cap resultat!!!");
+		}
 	}	
 	
 	private void query4(){
-
+		qu4_data1 = qu4_data2;
+		qu4_data2 = qu4_data1;
+		qu4_region = ""+qu4_region;
 	}
 	
 	
@@ -585,7 +659,23 @@ public class Main {
 			sb = (String) b.get("s_acctbal");
 			return -1 * sa.compareTo(sb);
 		}
-	}	
+	}
+	
+	private class ComparatorQuery3 implements Comparator<Map<String, Object>>{
+		@Override
+		public int compare(Map<String, Object> a, Map<String, Object> b) {
+			Date da, db;
+			Integer ia, ib;
+
+			da = (Date) a.get("o_orderdate");
+			db = (Date) b.get("o_orderdate");
+			if(da.compareTo(db) != 0)	return da.compareTo(db);
+
+			ia = (Integer) a.get("revenue");
+			ib = (Integer) b.get("revenue");
+			return -1*ia.compareTo(ib);
+		}
+	}
 
 	/*  ---------------------- Randoms ------------------------------  */
 
