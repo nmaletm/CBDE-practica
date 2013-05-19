@@ -157,8 +157,8 @@ public class Main {
 		BasicDBObject query = new BasicDBObject();
 		query.put("l_shipdate", new BasicDBObject("$lte", qu1_data));
 		DBCursor cursor = collection.find(query)
-			.sort(new BasicDBObject("l_linestatus", -1))
-			.sort(new BasicDBObject("l_returnflag", -1));
+			.sort(new BasicDBObject("l_linestatus", 1))
+			.sort(new BasicDBObject("l_returnflag", 1));
 	
 		String last_l_returnflag = null;
 		String last_l_linestatus = null;
@@ -224,7 +224,8 @@ public class Main {
 		query_p.put("p_size", qu2_size);
 		query_p.put("p_type", Pattern.compile(qu2_type));
 		
-		DBCursor cursor_p = db.getCollection("part").find(query_p);
+		DBCursor cursor_p = db.getCollection("part").find(query_p)
+								.sort(new BasicDBObject("p_partkey", 1));
 
 		while(cursor_p.hasNext()) {
 			DBObject ob_p = cursor_p.next();
@@ -235,21 +236,25 @@ public class Main {
 			BasicDBObject query_ps = new BasicDBObject();
 			query_ps.put("ps_supplycost", min_subconsulta);
 			DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);
-
+									
+			
 			while(cursor_ps.hasNext()) {
 				DBObject ob_ps = cursor_ps.next();
 				Integer ps_suppkey = (Integer) ob_ps.get("ps_suppkey");
 				
 				BasicDBObject query_s = new BasicDBObject();
 				query_s.put("_id", ps_suppkey);
-				DBCursor cursor_s = db.getCollection("supplier").find(query_s);
+				DBCursor cursor_s = db.getCollection("supplier").find(query_s)
+						.sort(new BasicDBObject("s_name", 1))
+						.sort(new BasicDBObject("s_acctbal", -1));
 				while(cursor_s.hasNext()) {
 					DBObject ob_s = cursor_s.next();
 					Integer s_nationkey = (Integer) ob_s.get("_id");
 					
 					BasicDBObject query_n = new BasicDBObject();
 					query_n.put("_id", s_nationkey);
-					DBCursor cursor_n = db.getCollection("nation").find(query_n);
+					DBCursor cursor_n = db.getCollection("nation").find(query_n)
+										.sort(new BasicDBObject("n_name", -1));
 					while(cursor_n.hasNext()) {
 						DBObject ob_n = cursor_n.next();
 						Integer n_regionkey = (Integer) ob_n.get("_id");
@@ -288,7 +293,7 @@ public class Main {
 		BasicDBObject query_ps = new BasicDBObject();
 		query_ps.put("ps_suppkey", p_partkey);
 		DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);
-
+		
 		while(cursor_ps.hasNext()) {
 			DBObject ob_ps = cursor_ps.next();
 			Integer ps_suppkey = (Integer) ob_ps.get("ps_suppkey");
