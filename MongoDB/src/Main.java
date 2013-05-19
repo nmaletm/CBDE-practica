@@ -134,18 +134,20 @@ public class Main {
 	}
 	
 	private long runQuery(int num){
-		switch(num){
-			case 1:	return query1();
-			case 2:	return query2();
-			case 3:	return query3();
-			case 4:	return query4();
-		}
-		return -1;
-	}
-	
-	private long query1(){
 		long temps_ini = 0, temps_fin = 0; 
 		temps_ini = System.currentTimeMillis();
+		switch(num){
+			case 1:	query1();
+			case 2:	query2();
+			case 3:	query3();
+			case 4:	query4();
+		}
+
+		temps_fin = System.currentTimeMillis();
+		return temps_fin-temps_ini;
+	}
+	
+	private void query1(){
 		
 		List<HashMap<String, String>> resultat = new ArrayList<HashMap<String, String>>();
 		
@@ -153,8 +155,7 @@ public class Main {
 		
 		BasicDBObject query = new BasicDBObject();
 		query.put("l_shipdate", new BasicDBObject("$lte", qu1_data));
-		collection.find(query);
-		DBCursor cursor = collection.find()
+		DBCursor cursor = collection.find(query)
 			.sort(new BasicDBObject("l_linestatus", -1))
 			.sort(new BasicDBObject("l_returnflag", -1));
 	
@@ -212,21 +213,81 @@ public class Main {
 				i = 0;
 			}
 		}
-		
-		temps_fin = System.currentTimeMillis();
-		return temps_fin-temps_ini;
 	}
 	
-	private long query2(){
-		return 1;
+	private void query2(){
+		// Primer fem la subconsulta
+		BasicDBObject query_p = new BasicDBObject();
+		DBCursor cursor_p = db.getCollection("part").find(query_p);
+
+		while(cursor_p.hasNext()) {
+			DBObject ob_ps = cursor_p.next();
+			Integer p_partkey = (Integer) ob_ps.get("_id");
+			
+			int min_subconsulta = query2Subquery(p_partkey);
+			System.out.println(min_subconsulta);
+			return;
+		}
+
+	}
+/*
+SELECT min(ps_supplycost) 
+				FROM partsupp, supplier, nation, region 
+				WHERE 
+					p_partkey = ps_partkey AND 
+					s_suppkey = ps_suppkey AND 
+					s_nationkey = n_nationkey AND 
+					n_regionkey = r_regionkey AND 
+					r_name = '"+qu2_region+"'	
+ */
+	private int query2Subquery(Integer p_partkey){
+		int min_subconsulta = Integer.MAX_VALUE;
+
+		BasicDBObject query_ps = new BasicDBObject();
+		query_ps.put("ps_suppkey", p_partkey);
+		DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);
+
+		while(cursor_ps.hasNext()) {
+			DBObject ob_ps = cursor_ps.next();
+			Integer ps_suppkey = (Integer) ob_ps.get("ps_suppkey");
+			Integer ps_supplycost = (Integer) ob_ps.get("ps_supplycost");
+			
+			BasicDBObject query_s = new BasicDBObject();
+			query_s.put("_id", ps_suppkey);
+			DBCursor cursor_s = db.getCollection("supplier").find(query_s);
+			while(cursor_s.hasNext()) {
+				DBObject ob_s = cursor_s.next();
+				Integer s_nationkey = (Integer) ob_s.get("_id");
+				
+				BasicDBObject query_n = new BasicDBObject();
+				query_n.put("_id", s_nationkey);
+				DBCursor cursor_n = db.getCollection("nation").find(query_n);
+				while(cursor_n.hasNext()) {
+					DBObject ob_n = cursor_n.next();
+					Integer n_regionkey = (Integer) ob_n.get("_id");
+					
+					BasicDBObject query_r = new BasicDBObject();
+					query_r.put("_id", n_regionkey);
+					query_r.put("r_name", qu2_region);
+					DBCursor cursor_r = db.getCollection("region").find(query_r);
+					while(cursor_r.hasNext()) {
+						cursor_r.next();
+						if(min_subconsulta > ps_supplycost){
+							min_subconsulta = ps_supplycost;
+						}
+					}
+				}
+			}
+		}
+		return min_subconsulta;
+	}
+	
+	private void query3(){
+
 	}	
 	
-	private long query3(){
-		return 1;
-	}	
-	
-	private long query4(){
-		return 1;
+	private void query4(){
+
 	}
 	
 	
