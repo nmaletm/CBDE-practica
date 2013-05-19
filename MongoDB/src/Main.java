@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -149,7 +150,7 @@ public class Main {
 	
 	private void query1(){
 		
-		List<HashMap<String, String>> resultat = new ArrayList<HashMap<String, String>>();
+		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
 		
 		DBCollection collection = db.getCollection("lineitem");
 		
@@ -188,17 +189,17 @@ public class Main {
 			
 			if(next_group){
 				// Calculem la tupla
-				HashMap<String, String> t = new HashMap<String, String>();
+				Map<String, Object> t = new HashMap<String, Object>();
 				t.put("l_returnflag", l_returnflag);
 				t.put("l_linestatus", l_linestatus);
-				t.put("sum_qty", ""+sum_qty);
-				t.put("sum_base_price", ""+sum_base_price);
-				t.put("sum_disc_price", ""+sum_disc_price);
-				t.put("sum_charge", ""+sum_charge);
-				t.put("avg_qty", ""+(sum_qty/i));
-				t.put("avg_price", ""+(sum_base_price/i));
-				t.put("avg_disc", ""+(sum_discount/i));
-				t.put("count_order", ""+i);
+				t.put("sum_qty", sum_qty);
+				t.put("sum_base_price", sum_base_price);
+				t.put("sum_disc_price", sum_disc_price);
+				t.put("sum_charge", sum_charge);
+				t.put("avg_qty", (sum_qty/i));
+				t.put("avg_price", (sum_base_price/i));
+				t.put("avg_disc", (sum_discount/i));
+				t.put("count_order", i);
 				 
 				resultat.add(t);
 
@@ -214,32 +215,73 @@ public class Main {
 			}
 		}
 	}
-	
+
 	private void query2(){
-		// Primer fem la subconsulta
+		
+		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
+		
 		BasicDBObject query_p = new BasicDBObject();
+		query_p.put("p_size", qu2_size);
+		query_p.put("p_type", Pattern.compile(qu2_type));
+		
 		DBCursor cursor_p = db.getCollection("part").find(query_p);
 
 		while(cursor_p.hasNext()) {
-			DBObject ob_ps = cursor_p.next();
-			Integer p_partkey = (Integer) ob_ps.get("_id");
+			DBObject ob_p = cursor_p.next();
+			Integer p_partkey = (Integer) ob_p.get("_id");
 			
 			int min_subconsulta = query2Subquery(p_partkey);
-			System.out.println(min_subconsulta);
-			return;
-		}
 
+			BasicDBObject query_ps = new BasicDBObject();
+			query_ps.put("ps_supplycost", min_subconsulta);
+			DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);
+
+			while(cursor_ps.hasNext()) {
+				DBObject ob_ps = cursor_ps.next();
+				Integer ps_suppkey = (Integer) ob_ps.get("ps_suppkey");
+				
+				BasicDBObject query_s = new BasicDBObject();
+				query_s.put("_id", ps_suppkey);
+				DBCursor cursor_s = db.getCollection("supplier").find(query_s);
+				while(cursor_s.hasNext()) {
+					DBObject ob_s = cursor_s.next();
+					Integer s_nationkey = (Integer) ob_s.get("_id");
+					
+					BasicDBObject query_n = new BasicDBObject();
+					query_n.put("_id", s_nationkey);
+					DBCursor cursor_n = db.getCollection("nation").find(query_n);
+					while(cursor_n.hasNext()) {
+						DBObject ob_n = cursor_n.next();
+						Integer n_regionkey = (Integer) ob_n.get("_id");
+						
+						BasicDBObject query_r = new BasicDBObject();
+						query_r.put("_id", n_regionkey);
+						query_r.put("r_name", qu2_region);
+						DBCursor cursor_r = db.getCollection("region").find(query_r);
+						while(cursor_r.hasNext()) {
+							cursor_r.next();
+
+							Map<String, Object> t = new HashMap<String, Object>();
+							t.put("s_acctbal", ob_s.get("s_acctbal"));
+							t.put("s_name", ob_s.get("s_name"));
+							t.put("n_name", ob_n.get("n_name"));
+							t.put("p_partkey", ob_p.get("p_partkey"));
+							t.put("p_mfgr", ob_p.get("p_mfgr"));
+							t.put("s_address", ob_s.get("s_address"));
+							t.put("s_phone", ob_s.get("s_phone"));
+							t.put("s_comment", ob_s.get("s_comment"));
+							 
+							resultat.add(t);
+						}
+					}
+				}
+			}
+		}
+		if(resultat.size() == 0){
+			System.out.println("ALERTA: El resultat de la query no retorna cap resultat!!!");
+		}
 	}
-/*
-SELECT min(ps_supplycost) 
-				FROM partsupp, supplier, nation, region 
-				WHERE 
-					p_partkey = ps_partkey AND 
-					s_suppkey = ps_suppkey AND 
-					s_nationkey = n_nationkey AND 
-					n_regionkey = r_regionkey AND 
-					r_name = '"+qu2_region+"'	
- */
+
 	private int query2Subquery(Integer p_partkey){
 		int min_subconsulta = Integer.MAX_VALUE;
 
