@@ -3,6 +3,8 @@ import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -147,7 +149,7 @@ public class Main {
 		temps_fin = System.currentTimeMillis();
 		return temps_fin-temps_ini;
 	}
-	
+
 	private void query1(){
 		
 		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
@@ -224,9 +226,7 @@ public class Main {
 		query_p.put("p_size", qu2_size);
 		query_p.put("p_type", Pattern.compile(qu2_type));
 		
-		DBCursor cursor_p = db.getCollection("part").find(query_p)
-								.sort(new BasicDBObject("p_partkey", 1));
-
+		DBCursor cursor_p = db.getCollection("part").find(query_p);
 		while(cursor_p.hasNext()) {
 			DBObject ob_p = cursor_p.next();
 			Integer p_partkey = (Integer) ob_p.get("_id");
@@ -235,26 +235,21 @@ public class Main {
 
 			BasicDBObject query_ps = new BasicDBObject();
 			query_ps.put("ps_supplycost", min_subconsulta);
-			DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);
-									
-			
+			DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);	
 			while(cursor_ps.hasNext()) {
 				DBObject ob_ps = cursor_ps.next();
 				Integer ps_suppkey = (Integer) ob_ps.get("ps_suppkey");
 				
 				BasicDBObject query_s = new BasicDBObject();
 				query_s.put("_id", ps_suppkey);
-				DBCursor cursor_s = db.getCollection("supplier").find(query_s)
-						.sort(new BasicDBObject("s_name", 1))
-						.sort(new BasicDBObject("s_acctbal", -1));
+				DBCursor cursor_s = db.getCollection("supplier").find(query_s);
 				while(cursor_s.hasNext()) {
 					DBObject ob_s = cursor_s.next();
 					Integer s_nationkey = (Integer) ob_s.get("_id");
 					
 					BasicDBObject query_n = new BasicDBObject();
 					query_n.put("_id", s_nationkey);
-					DBCursor cursor_n = db.getCollection("nation").find(query_n)
-										.sort(new BasicDBObject("n_name", -1));
+					DBCursor cursor_n = db.getCollection("nation").find(query_n);
 					while(cursor_n.hasNext()) {
 						DBObject ob_n = cursor_n.next();
 						Integer n_regionkey = (Integer) ob_n.get("_id");
@@ -282,11 +277,14 @@ public class Main {
 				}
 			}
 		}
+		Collections.sort(resultat, new ComparatorQuery2());
+		
 		if(resultat.size() == 0){
 			System.out.println("ALERTA: El resultat de la query no retorna cap resultat!!!");
 		}
 	}
 
+	
 	private int query2Subquery(Integer p_partkey){
 		int min_subconsulta = Integer.MAX_VALUE;
 
@@ -564,8 +562,30 @@ public class Main {
 		}
 	}
 	
-	
-	
+	/* --------------------- Comparadors ----------------------------  */
+	private class ComparatorQuery2 implements Comparator<Map<String, Object>>{
+		@Override
+		public int compare(Map<String, Object> a, Map<String, Object> b) {
+			String sa, sb;
+			Integer ia, ib;
+
+			ia = (Integer) a.get("p_partkey");
+			ib = (Integer) b.get("p_partkey");
+			if(ia.compareTo(ib) != 0)	return ia.compareTo(ib);
+
+			sa = (String) a.get("s_name");
+			sb = (String) b.get("s_name");
+			if(sa.compareTo(sb) != 0)	return sa.compareTo(sb);
+			
+			sa = (String) a.get("n_name");
+			sb = (String) b.get("n_name");
+			if(sa.compareTo(sb) != 0)	return sa.compareTo(sb);
+			
+			sa = (String) a.get("s_acctbal");
+			sb = (String) b.get("s_acctbal");
+			return -1 * sa.compareTo(sb);
+		}
+	}	
 
 	/*  ---------------------- Randoms ------------------------------  */
 
