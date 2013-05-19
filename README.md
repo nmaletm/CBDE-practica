@@ -9,6 +9,9 @@ Aquesta pràctica consisteix en programar un script per a accedir a una base de 
 però amb tres sistemes de bases de dades molt diferents (Relacional: Oracle, Document oriented: 
 MongoDB, Graph database: Neo4j).
 
+D'aquesta manera comparar les tres aproximacions per veure 
+les parts que es faciliten o dificulten segons el sistema.
+
 [Enunciat de la pràctica](Enunciat.pdf)
 
 
