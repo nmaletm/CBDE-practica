@@ -116,17 +116,18 @@ public class Main {
 	private void runQueries(){
 		System.out.println("------------- QUERIES ---------------");
 		long temps = 0;
-		temps += exeQuery(1);
-		temps += exeQuery(2);
-		temps += exeQuery(3);
+	//	temps += exeQuery(1);
+	//	temps += exeQuery(2);
+	//	temps += exeQuery(3);
 		temps += exeQuery(4);
 		System.out.println("Avg de temps amb tots els inserts " + String.format("%s",(float)temps/(float)4) + " mili ");
 
 	}
 	
 	private long exeQuery(int num){
-		long temps = 9999999;
-		for(int i = 0; i < 5; i++){
+		long temps = Long.MAX_VALUE;
+		///for(int i = 0; i < 5; i++){
+		for(int i = 0; i < 2; i++){
 			long t = runQuery(num);
 			if(t < temps && t != 0){
 				temps = t;
@@ -151,26 +152,21 @@ public class Main {
 	}
 
 	private void query1(){
-		
 		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
 		
-		DBCollection collection = db.getCollection("lineitem");
-		
-		BasicDBObject query = new BasicDBObject();
-		query.put("l_shipdate", new BasicDBObject("$lte", qu1_data));
-		DBCursor cursor = collection.find(query)
-			.sort(new BasicDBObject("l_linestatus", 1))
-			.sort(new BasicDBObject("l_returnflag", 1));
-	
 		String last_l_returnflag = null;
 		String last_l_linestatus = null;
 		int i = 0, sum_qty = 0, sum_base_price = 0, sum_disc_price = 0, sum_charge = 0, sum_discount = 0;
 
+		BasicDBObject query = new BasicDBObject();
+		query.put("l_shipdate", new BasicDBObject("$lte", qu1_data));
+		DBCursor cursor = db.getCollection("lineitem").find(query)
+			.sort(new BasicDBObject("l_linestatus", 1))
+			.sort(new BasicDBObject("l_returnflag", 1));
 		while(cursor.hasNext()) {
 			DBObject ob = cursor.next();
 			String l_returnflag = (String) ob.get("l_returnflag");
 			String l_linestatus = (String) ob.get("l_linestatus");
-			
 
 			int l_discount = (Integer)ob.get("l_discount");
 			int l_extendedprice = (Integer)ob.get("l_extendedprice");
@@ -202,7 +198,6 @@ public class Main {
 				t.put("avg_price", (sum_base_price/i));
 				t.put("avg_disc", (sum_discount/i));
 				t.put("count_order", i);
-				 
 				resultat.add(t);
 
 				// Ho deixem bé per la següent iteració
@@ -222,18 +217,17 @@ public class Main {
 	}
 
 	private void query2(){
-		
 		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
 		
 		BasicDBObject query_p = new BasicDBObject();
 		query_p.put("p_size", qu2_size);
 		query_p.put("p_type", Pattern.compile(qu2_type));
-		
 		DBCursor cursor_p = db.getCollection("part").find(query_p);
 		while(cursor_p.hasNext()) {
 			DBObject ob_p = cursor_p.next();
 			Integer p_partkey = (Integer) ob_p.get("_id");
 			
+			// Fem la subconsulta
 			int min_subconsulta = query2Subquery(p_partkey);
 
 			BasicDBObject query_ps = new BasicDBObject();
@@ -289,8 +283,8 @@ public class Main {
 	}
 
 	
-	private int query2Subquery(Integer p_partkey){
-		int min_subconsulta = Integer.MAX_VALUE;
+	private Integer query2Subquery(Integer p_partkey){
+		Integer min_subconsulta = Integer.MAX_VALUE;
 
 		BasicDBObject query_ps = new BasicDBObject();
 		query_ps.put("ps_suppkey", p_partkey);
@@ -334,15 +328,14 @@ public class Main {
 	private void query3(){
 		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
 		
-		BasicDBObject query_l = new BasicDBObject();
-		query_l.put("l_shipdate", new BasicDBObject("$gt", qu3_data2));
-		DBCursor cursor_l = db.getCollection("lineitem").find(query_l);
-	
 		Integer last_l_orderkey = null;
 		Date last_o_orderdate = null;
 		Integer last_o_shippriority = null;
 		Integer revenue = 0;
-
+		
+		BasicDBObject query_l = new BasicDBObject();
+		query_l.put("l_shipdate", new BasicDBObject("$gt", qu3_data2));
+		DBCursor cursor_l = db.getCollection("lineitem").find(query_l);
 		while(cursor_l.hasNext()) {
 			DBObject ob_l = cursor_l.next();
 			Integer l_orderkey = (Integer) ob_l.get("l_orderkey");
@@ -404,9 +397,84 @@ public class Main {
 	}	
 	
 	private void query4(){
-		qu4_data1 = qu4_data2;
-		qu4_data2 = qu4_data1;
-		qu4_region = ""+qu4_region;
+		List<Map<String, Object>> resultat = new ArrayList<Map<String, Object>>();
+		Integer revenue = 0;
+		String last_n_name = null;
+		
+		BasicDBObject query_c = new BasicDBObject();
+		DBCursor cursor_c = db.getCollection("customer").find(query_c);
+		while(cursor_c.hasNext()) {
+			DBObject ob_c = cursor_c.next();
+			Integer c_custkey = (Integer) ob_c.get("_id");
+				
+			BasicDBObject query_o = new BasicDBObject();
+			query_o.put("o_custkey", c_custkey);
+			query_o.put("o_orderdate", new BasicDBObject("$gte", qu4_data1));
+			query_o.put("o_orderdate", new BasicDBObject("$lt", qu4_data2));
+			DBCursor cursor_o = db.getCollection("orders").find(query_o);
+			while(cursor_o.hasNext()) {
+				DBObject ob_o = cursor_o.next();
+				Integer o_orderkey = (Integer) ob_o.get("_id");
+				
+	
+				BasicDBObject query_l = new BasicDBObject();
+				query_l.put("l_orderkey", o_orderkey);
+				DBCursor cursor_l = db.getCollection("lineitem").find(query_l);
+				while(cursor_l.hasNext()) {
+					DBObject ob_l = cursor_l.next();
+					Integer l_suppkey = (Integer) ob_l.get("l_suppkey");
+					Integer l_extendedprice = (Integer) ob_l.get("l_extendedprice");
+					Integer l_discount = (Integer) ob_l.get("l_discount");
+					
+					BasicDBObject query_s = new BasicDBObject();
+					query_s.put("_id", l_suppkey);
+					DBCursor cursor_s = db.getCollection("supplier").find(query_s);
+					while(cursor_s.hasNext()) {
+						DBObject ob_s = cursor_s.next();
+						Integer s_nationkey = (Integer) ob_s.get("s_nationkey");
+						
+						BasicDBObject query_n = new BasicDBObject();
+						query_n.put("_id", s_nationkey);
+						DBCursor cursor_n = db.getCollection("nation").find(query_n);
+						while(cursor_n.hasNext()) {
+							DBObject ob_n = cursor_n.next();
+							Integer n_regionkey = (Integer) ob_n.get("n_regionkey");
+							String n_name = (String) ob_n.get("n_name");
+							
+							BasicDBObject query_r = new BasicDBObject();
+							query_r.put("_id", n_regionkey);
+							query_r.put("r_name", qu4_region);
+							DBCursor cursor_r = db.getCollection("region").find(query_r);
+							while(cursor_r.hasNext()) {
+								cursor_r.next();
+	
+								revenue += l_extendedprice * (1 - l_discount);
+
+								// Mirem si pertany al groupby anterior
+								boolean next_group = true;
+								if(n_name.equals(last_n_name)){
+									next_group = false;
+								}
+								if(next_group){
+									Map<String, Object> t = new HashMap<String, Object>();
+									t.put("n_name", ob_n.get("n_name"));
+									t.put("revenue", revenue);
+									 
+									resultat.add(t);
+									revenue = 0;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+//		Collections.sort(resultat, new ComparatorQuery3());
+
+		if(resultat.size() == 0){
+			System.out.println("ALERTA: El resultat de la query 4 no retorna cap resultat!!!");
+		}
 	}
 	
 	
