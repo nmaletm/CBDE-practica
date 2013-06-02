@@ -787,7 +787,7 @@ public class Main {
 		return new Date(unixtime);
 	}
 
-	private class Tuple{
+	private static class Tuple{
 		public int a;
 		public int b;
 		
