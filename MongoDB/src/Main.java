@@ -142,10 +142,10 @@ public class Main {
 		long temps_ini = 0, temps_fin = 0; 
 		temps_ini = System.currentTimeMillis();
 		switch(num){
-			case 1:	query1();
-			case 2:	query2();
-			case 3:	query3();
-			case 4:	query4();
+			case 1:	query1();break;
+			case 2:	query2();break;
+			case 3:	query3();break;
+			case 4:	query4();break;
 		}
 
 		temps_fin = System.currentTimeMillis();
