@@ -116,9 +116,9 @@ public class Main {
 	private void runQueries(){
 		System.out.println("------------- QUERIES ---------------");
 		long temps = 0;
-	//	temps += exeQuery(1);
-	//	temps += exeQuery(2);
-	//	temps += exeQuery(3);
+		temps += exeQuery(1);
+		temps += exeQuery(2);
+		temps += exeQuery(3);
 		temps += exeQuery(4);
 		System.out.println("Avg de temps amb tots els inserts " + String.format("%s",(float)temps/(float)4) + " mili ");
 
@@ -127,7 +127,7 @@ public class Main {
 	private long exeQuery(int num){
 		long temps = Long.MAX_VALUE;
 		///for(int i = 0; i < 5; i++){
-		for(int i = 0; i < 2; i++){
+		for(int i = 0; i < 1; i++){
 			long t = runQuery(num);
 			if(t < temps && t != 0){
 				temps = t;
