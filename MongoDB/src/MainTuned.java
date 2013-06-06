@@ -477,7 +477,6 @@ public class MainTuned {
 		llista.put("orders", dataOrders);
 		llista.put("lineitem", dataLineItem);
 
-		materializeData();
 		
 		System.out.println("Valors preparats, ara anem a fer insert");
 
