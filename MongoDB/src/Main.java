@@ -97,7 +97,7 @@ public class Main {
 			deleteCollections();
 			
 			insertBatchData(1000);
-						
+			
 			runQueries();
 			
 			insertBatchData(6000);
@@ -126,12 +126,12 @@ public class Main {
 	
 	private long exeQuery(int num){
 		long temps = Long.MAX_VALUE;
-		///for(int i = 0; i < 5; i++){
 		for(int i = 0; i < 1; i++){
 			long t = runQuery(num);
 			if(t < temps && t != 0){
 				temps = t;
 			}
+			System.out.print(".");
 		}
 		System.out.println("Query "+num+" trigat " + temps + " mili ");
 		return temps;
@@ -141,10 +141,10 @@ public class Main {
 		long temps_ini = 0, temps_fin = 0; 
 		temps_ini = System.currentTimeMillis();
 		switch(num){
-			case 1:	query1();
-			case 2:	query2();
-			case 3:	query3();
-			case 4:	query4();
+			case 1:	query1();break;
+			case 2:	query2();break;
+			case 3:	query3();break;
+			case 4:	query4();break;
 		}
 
 		temps_fin = System.currentTimeMillis();
@@ -232,6 +232,7 @@ public class Main {
 
 			BasicDBObject query_ps = new BasicDBObject();
 			query_ps.put("ps_supplycost", min_subconsulta);
+//			query_ps.put("ps_partkey", p_partkey);
 			DBCursor cursor_ps = db.getCollection("partsupp").find(query_ps);	
 			while(cursor_ps.hasNext()) {
 				DBObject ob_ps = cursor_ps.next();
@@ -470,7 +471,7 @@ public class Main {
 			}
 		}
 
-//		Collections.sort(resultat, new ComparatorQuery3());
+		Collections.sort(resultat, new ComparatorQuery4());
 
 		if(resultat.size() == 0){
 			System.out.println("ALERTA: El resultat de la query 4 no retorna cap resultat!!!");
@@ -744,7 +745,18 @@ public class Main {
 			return -1*ia.compareTo(ib);
 		}
 	}
+	
+	private class ComparatorQuery4 implements Comparator<Map<String, Object>>{
+		@Override
+		public int compare(Map<String, Object> a, Map<String, Object> b) {
+			Integer ia, ib;
 
+			ia = (Integer) a.get("revenue");
+			ib = (Integer) b.get("revenue");
+			return -1*ia.compareTo(ib);
+		}
+	}
+	
 	/*  ---------------------- Randoms ------------------------------  */
 
 	
@@ -774,7 +786,7 @@ public class Main {
 		return new Date(unixtime);
 	}
 
-	private class Tuple{
+	private static class Tuple{
 		public int a;
 		public int b;
 		
