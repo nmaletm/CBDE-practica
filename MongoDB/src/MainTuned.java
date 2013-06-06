@@ -1,5 +1,4 @@
 import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -454,7 +453,7 @@ public class MainTuned {
 
 	/*  ---------------------- Inserts ------------------------------  */
 
-	private void insertBatchData(int start) throws SQLException{
+	private void insertBatchData(int start){
 		System.out.println("------------- INSERTS ---------------");
 
 		dataRegion = generateRegion(start);
