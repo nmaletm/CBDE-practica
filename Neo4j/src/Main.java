@@ -15,6 +15,8 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.kernel.GraphDatabaseAPI;
 
 
 public class Main {
@@ -105,7 +107,7 @@ public class Main {
 			
 			//runQueries();
 
-			insertBatchData(6000);
+			//insertBatchData(6000);
 
 		    tx.success();
 		}
@@ -144,6 +146,9 @@ public class Main {
 	private void insertBatchData(int start){
 		System.out.println("------------- INSERTS ---------------");
 
+		long temps_ini, temps_fin; 
+		temps_ini = System.currentTimeMillis();	
+		
 		dataRegion = generateRegion(start);
 		dataNation = generateNation(start);
 		dataPart = generatePart(start);
@@ -157,6 +162,8 @@ public class Main {
 		Map<String,Map<Object,Node>> llista = new HashMap<String,Map<Object,Node>>();
 
 		System.out.println("Preparem valors inserts");
+		llista.put("region", dataRegion);
+		llista.put("nation", dataNation);
 		llista.put("part", dataPart);
 		llista.put("supplier", dataSupplier);
 		llista.put("customer", dataCustomer);
@@ -167,8 +174,7 @@ public class Main {
 		
 		System.out.println("Valors preparats, ara anem a fer insert");
 
-		long temps_ini, temps_fin; 
-		temps_ini = System.currentTimeMillis();
+
 		for (Map.Entry<String, Map<Object,Node>> entry : llista.entrySet()) {
 			String name_collection = entry.getKey();
 			entry.getValue().values();
@@ -207,6 +213,9 @@ public class Main {
 			document.setProperty("n_regionkey", rBetween(start,start+5));
 			document.setProperty("n_comment", rStr(160/2));
 			document.setProperty("skip", rStr(64/2));
+			int clau = (Integer) document.getProperty("n_regionkey");
+			Node nodeAux = dataRegion.get(clau);
+			document.createRelationshipTo(nodeAux, RelTypes.KNOWS );
 			res.put(i,document);
 		}
 		return res;
@@ -253,6 +262,11 @@ public class Main {
 			document.setProperty("s_acctbal", rInt(13/2));
 			document.setProperty("s_comment", rStr(105/2));
 			document.setProperty("skip", rStr(64/2));
+			
+			int clau = (Integer) document.getProperty("s_nationkey");
+			Node nodeAux = dataNation.get(clau);
+			document.createRelationshipTo(nodeAux, RelTypes.KNOWS );
+			
 			res.put(i,document);
 		}
 		return res;
@@ -278,6 +292,11 @@ public class Main {
 			document.setProperty("c_mktsegment", c_mktsegment);
 			document.setProperty("c_comment", rStr(102/2));
 			document.setProperty("skip", rStr(64/2));
+			
+			int clau = (Integer) document.getProperty("c_nationkey");
+			Node nodeAux = dataSupplier.get(clau);
+			document.createRelationshipTo(nodeAux, RelTypes.KNOWS );
+						
 			res.put(i,document);
 		}
 		return res;
@@ -301,6 +320,15 @@ public class Main {
 			document.setProperty("ps_supplycost", rInt(13/2));
 			document.setProperty("ps_comment", rStr(200/2));
 			document.setProperty("skip", rStr(64/2));
+			
+			int clau = (Integer) document.getProperty("ps_partkey");
+			Node nodeAux = dataPart.get(clau);
+			document.createRelationshipTo(nodeAux, RelTypes.KNOWS );
+
+			int clau2 = (Integer) document.getProperty("ps_suppkey");
+			Node nodeAux2 = dataSupplier.get(clau2);
+			document.createRelationshipTo(nodeAux2, RelTypes.KNOWS );
+								
 			res.put(id,document);
 		}
 		return res;
@@ -327,6 +355,11 @@ public class Main {
 			document.setProperty("o_shippriority", rInt(4));
 			document.setProperty("o_comment", rStr(80/2));
 			document.setProperty("skip", rStr(64/2));
+			
+			int clau = (Integer) document.getProperty("o_custkey");
+			Node nodeAux = dataCustomer.get(clau);
+			document.createRelationshipTo(nodeAux, RelTypes.KNOWS );
+
 			res.put(i,document);
 		}
 		return res;
@@ -368,6 +401,20 @@ public class Main {
 			document.setProperty("l_shipmode", rStr(64/2));
 			document.setProperty("l_comment", rStr(64/2));
 			document.setProperty("skip", rStr(64/2));
+			
+			
+			int clau = (Integer) document.getProperty("l_orderkey");
+			Node nodeAux = dataOrders.get(clau);
+			document.createRelationshipTo(nodeAux, RelTypes.KNOWS );
+			
+			int clau2 = (Integer) t.a;
+			Node nodeAux2 = dataPart.get(clau2);
+			document.createRelationshipTo(nodeAux2, RelTypes.KNOWS );
+			
+			int clau3 = (Integer) t.b;
+			Node nodeAux3 = dataSupplier.get(clau3);
+			document.createRelationshipTo(nodeAux3, RelTypes.KNOWS );
+			
 			res.put(id, document);
 		}
 		return res;
@@ -382,12 +429,11 @@ public class Main {
 		config.put( "string_block_size", "60" );
 		config.put( "array_block_size", "300" );
 		db = new GraphDatabaseFactory()
-		    .newEmbeddedDatabaseBuilder( "target/database/location" )
+		    .newEmbeddedDatabaseBuilder( "target/database2/location" )
 		    .setConfig( config )
 		    .newGraphDatabase();
 		
 		//db = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
-		
 	}
 	private void stopNeo4j() {
 		db.shutdown();
